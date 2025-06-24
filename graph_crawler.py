@@ -1,4 +1,5 @@
 from selenium_utils import WebDriverManager
+from selenium_deployment import DeploymentWebDriverManager
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from collections import deque, defaultdict
@@ -69,9 +70,14 @@ class GraphWebCrawler:
         self.graph_nodes: Dict[str, GraphNode] = {}
         self.url_to_node_id: Dict[str, str] = {}
         
-        # Selenium setup using WebDriverManager
-        self.driver_manager = WebDriverManager(headless=headless, timeout=timeout)
-        self._setup_driver()
+        # Selenium setup using deployment-friendly WebDriverManager
+        try:
+            self.driver_manager = DeploymentWebDriverManager(headless=headless, timeout=timeout)
+            self._setup_driver()
+        except Exception as e:
+            self.logger.warning(f"Deployment WebDriver failed, falling back to standard: {e}")
+            self.driver_manager = WebDriverManager(headless=headless, timeout=timeout)
+            self._setup_driver()
     
     def _setup_driver(self):
         """Initialize Selenium WebDriver using WebDriverManager"""

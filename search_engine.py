@@ -33,6 +33,12 @@ class SearchEngine:
         topic_urls = self._get_enhanced_topic_urls(query)
         all_urls.extend(topic_urls)
         
+        # If no URLs found, add some reliable fallback URLs
+        if not all_urls:
+            fallback_urls = self._get_fallback_urls(query)
+            all_urls.extend(fallback_urls)
+            self.logger.warning(f"No search results found, using {len(fallback_urls)} fallback URLs")
+        
         # Remove duplicates and limit results
         unique_urls = list(dict.fromkeys(all_urls))  # Preserves order
         
@@ -204,3 +210,49 @@ class SearchEngine:
         # Remove duplicates and return limited set
         unique_urls = list(dict.fromkeys(urls))
         return unique_urls[:8]
+    
+    def _get_fallback_urls(self, query: str) -> List[str]:
+        """Get reliable fallback URLs when search engines fail"""
+        # General knowledge and educational URLs that are likely to be accessible
+        fallback_urls = [
+            "https://en.wikipedia.org/wiki/Main_Page",
+            "https://www.britannica.com",
+            "https://www.investopedia.com",
+            "https://www.howstuffworks.com",
+            "https://www.sciencedirect.com",
+            "https://www.nature.com",
+            "https://www.nationalgeographic.com",
+            "https://www.smithsonianmag.com"
+        ]
+        
+        query_lower = query.lower()
+        
+        # Technology-specific fallbacks
+        if any(word in query_lower for word in ['technology', 'software', 'programming', 'computer', 'web', 'internet']):
+            fallback_urls.extend([
+                "https://www.techrepublic.com",
+                "https://www.computerworld.com",
+                "https://www.infoworld.com",
+                "https://www.cnet.com/tech/",
+                "https://www.pcmag.com"
+            ])
+        
+        # Science and research fallbacks
+        if any(word in query_lower for word in ['research', 'science', 'study', 'analysis']):
+            fallback_urls.extend([
+                "https://www.sciencenews.org",
+                "https://www.livescience.com",
+                "https://www.popsci.com",
+                "https://www.newscientist.com"
+            ])
+        
+        # Business and finance fallbacks
+        if any(word in query_lower for word in ['business', 'finance', 'market', 'economy']):
+            fallback_urls.extend([
+                "https://www.businessinsider.com",
+                "https://www.cnbc.com",
+                "https://www.bloomberg.com",
+                "https://www.reuters.com"
+            ])
+        
+        return fallback_urls[:6]  # Return up to 6 fallback URLs
