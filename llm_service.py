@@ -5,6 +5,10 @@ import logging
 from dataclasses import dataclass
 from graph_crawler import PageInfo
 import json
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 @dataclass
 class PageSummary:

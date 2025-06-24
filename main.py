@@ -8,6 +8,7 @@ import subprocess
 import sys
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 def main():
     """Main function to run the Streamlit app"""
@@ -15,6 +16,9 @@ def main():
     # Ensure we're in the right directory
     current_dir = Path(__file__).parent
     os.chdir(current_dir)
+    
+    # Load environment variables
+    load_dotenv()
     
     # Add the current directory to Python path
     if str(current_dir) not in sys.path:

@@ -7,6 +7,10 @@ import os
 from datetime import datetime
 from research_service import ResearchService
 import time
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -443,9 +447,7 @@ def perform_research(query: str, method: str):
     
     try:
         if method == 'search':
-            analysis_result, crawled_pages, statistics = service.search_research(
-                query, max_depth=int(os.getenv('SEARCH_MAX_DEPTH', 2))
-            )
+            analysis_result, crawled_pages, statistics = service.search_research(query)
             return {
                 'analysis': analysis_result,
                 'statistics': statistics,
@@ -454,11 +456,7 @@ def perform_research(query: str, method: str):
             }
         
         elif method == 'deep':
-            analysis_result, crawled_pages, statistics = service.deep_research(
-                query, 
-                bfs_pages=int(os.getenv('DEEP_BFS_PAGES', 15)),
-                dfs_depth=int(os.getenv('DEEP_DFS_DEPTH', 3))
-            )
+            analysis_result, crawled_pages, statistics = service.deep_research(query)
             return {
                 'analysis': analysis_result,
                 'statistics': statistics,
@@ -735,7 +733,7 @@ def main():
                     status_text.markdown("🔍 **Initializing BFS queue with seed URLs...**")
                     
                     analysis_result, crawled_pages, statistics = service.search_research(
-                        user_query, max_depth=2
+                        user_query  # Let the method use environment variables
                     )
                 else:
                     progress_bar.progress(25)
@@ -745,7 +743,7 @@ def main():
                     status_text.markdown("🔬 **Phase 2: DFS deep exploration...**")
                     
                     analysis_result, crawled_pages, statistics = service.deep_research(
-                        user_query, bfs_pages=15, dfs_depth=3
+                        user_query  # Let the method use environment variables
                     )
                 
                 progress_bar.progress(75)

@@ -5,13 +5,20 @@ from typing import List
 import logging
 import time
 import re
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 class SearchEngine:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.session = requests.Session()
+        # Use user agent from environment variable
+        user_agent = os.getenv('USER_AGENT', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': user_agent
         })
     
     def get_search_urls(self, query: str) -> List[str]:

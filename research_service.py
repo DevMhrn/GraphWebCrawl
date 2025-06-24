@@ -1,9 +1,14 @@
 import logging
 from typing import Dict, List, Tuple
 import time
+import os
+from dotenv import load_dotenv
 from graph_crawler import GraphWebCrawler, PageInfo
 from llm_service import LLMService, AnalysisResult
 from search_engine import SearchEngine
+
+# Load environment variables
+load_dotenv()
 
 class ResearchService:
     def __init__(self, crawler_config: Dict = None, llm_config: Dict = None):
@@ -12,7 +17,8 @@ class ResearchService:
         self.crawler = GraphWebCrawler(
             delay=crawler_config.get('delay', 1.0),
             timeout=crawler_config.get('timeout', 10),
-            max_pages=crawler_config.get('max_pages', 50)
+            max_pages=crawler_config.get('max_pages', 50),
+            headless=crawler_config.get('headless', True)  # Add headless option
         )
         
         # Initialize LLM service
@@ -27,6 +33,17 @@ class ResearchService:
         self.last_research_results = {}
         
         self.logger = logging.getLogger(__name__)
+    
+    def __del__(self):
+        """Clean up resources when the service is destroyed"""
+        if hasattr(self, 'crawler') and self.crawler:
+            self.crawler.close_driver()
+    
+    def cleanup(self):
+        """Manually cleanup resources"""
+        if hasattr(self, 'crawler') and self.crawler:
+            self.crawler.close_driver()
+            self.logger.info("🧹 Research service cleanup completed")
     
     def add_conversation_context(self, user_query: str, research_type: str, results: dict):
         """Add conversation context for follow-up questions"""
@@ -52,11 +69,24 @@ class ResearchService:
         
         return context
     
-    def search_research(self, query: str, max_depth: int = 2) -> Tuple[AnalysisResult, Dict[str, PageInfo], Dict]:
+    def search_research(self, query: str, max_depth: int = None) -> Tuple[AnalysisResult, Dict[str, PageInfo], Dict]:
         """
-        Perform search research using BFS algorithm
+        Perform search research using BFS algorithm with environment configuration
         Returns: (analysis_result, crawled_pages, statistics)
         """
+        # Use environment variables for configuration
+        if max_depth is None:
+            max_depth = int(os.getenv('SEARCH_MAX_DEPTH', 1))
+        
+        max_pages = int(os.getenv('SEARCH_MAX_PAGES', 25))
+        delay_multiplier = float(os.getenv('SEARCH_DELAY_MULTIPLIER', 0.7))
+        
+        # Apply delay multiplier to crawler settings
+        original_delay = self.crawler.delay
+        self.crawler.delay = original_delay * delay_multiplier
+        self.crawler.max_pages = max_pages
+        
+        self.logger.info(f"🔍 SEARCH CONFIG: max_depth={max_depth}, max_pages={max_pages}, delay={self.crawler.delay}")
         self.logger.info(f"Starting SEARCH research for query: {query}")
         start_time = time.time()
         
@@ -110,14 +140,30 @@ class ResearchService:
         }
         self.add_conversation_context(query, "search", results)
         
+        # Restore original crawler settings
+        self.crawler.delay = original_delay
+        
         self.logger.info("Search research completed")
         return analysis_result, crawled_pages, statistics
     
-    def deep_research(self, query: str, bfs_pages: int = 15, dfs_depth: int = 3) -> Tuple[AnalysisResult, Dict[str, PageInfo], Dict]:
+    def deep_research(self, query: str, bfs_pages: int = None, dfs_depth: int = None) -> Tuple[AnalysisResult, Dict[str, PageInfo], Dict]:
         """
-        Perform deep research using combined BFS + DFS algorithm
+        Perform deep research using combined BFS + DFS algorithm with environment configuration
         Returns: (analysis_result, crawled_pages, statistics)
         """
+        # Use environment variables for configuration
+        if bfs_pages is None:
+            bfs_pages = int(os.getenv('DEEP_BFS_PAGES', 20))
+        if dfs_depth is None:
+            dfs_depth = int(os.getenv('DEEP_DFS_DEPTH', 4))
+        
+        delay_multiplier = float(os.getenv('DEEP_DELAY_MULTIPLIER', 1.0))
+        
+        # Apply delay multiplier to crawler settings
+        original_delay = self.crawler.delay
+        self.crawler.delay = original_delay * delay_multiplier
+        
+        self.logger.info(f"🔬 DEEP CONFIG: bfs_pages={bfs_pages}, dfs_depth={dfs_depth}, delay={self.crawler.delay}")
         self.logger.info(f"Starting DEEP RESEARCH for query: {query}")
         start_time = time.time()
         
@@ -172,6 +218,9 @@ class ResearchService:
             'statistics': statistics
         }
         self.add_conversation_context(query, "deep", results)
+        
+        # Restore original crawler settings
+        self.crawler.delay = original_delay
         
         self.logger.info("Deep research completed")
         return analysis_result, crawled_pages, statistics
@@ -235,3 +284,16 @@ class ResearchService:
         """Clear conversation history for new session"""
         self.conversation_history = []
         self.last_research_results = {}
+    
+    def get_graph_visualization_data(self) -> Dict:
+        """Get graph visualization data from the crawler"""
+        return self.crawler.get_graph_visualization_data()
+    
+    def clear_graph_state(self):
+        """Clear the graph state for a fresh research session"""
+        self.crawler.clear_graph()
+        self.logger.info("🔄 Graph state cleared for new research session")
+    
+    def get_enhanced_statistics(self, pages: Dict[str, PageInfo]) -> Dict:
+        """Get enhanced statistics including graph metrics"""
+        return self.crawler.get_crawl_statistics(pages)

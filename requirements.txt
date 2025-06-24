@@ -11,4 +11,6 @@ sqlalchemy
 python-dotenv
 validators
 tqdm
-numpy   
+numpy
+selenium
+webdriver-manager   
