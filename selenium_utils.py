@@ -35,14 +35,15 @@ class WebDriverManager:
     
     def _find_chrome_binary(self) -> Optional[str]:
         """Find Chrome binary in deployment environments"""
-        # Common Chrome binary locations (prioritize Chromium for cloud deployments)
+        # Updated Chrome binary locations for current Streamlit Cloud
         chrome_paths = [
-            '/usr/bin/chromium-browser',  # Streamlit Cloud
-            '/usr/bin/chromium',
+            '/usr/bin/chromium',          # Current Streamlit Cloud
+            '/usr/bin/chromium-browser',  # Legacy Streamlit Cloud
+            '/usr/bin/google-chrome',     # If google-chrome-stable works
             '/usr/bin/google-chrome-stable',
-            '/usr/bin/google-chrome',
             '/opt/google/chrome/chrome',
             '/opt/google/chrome/google-chrome',
+            '/snap/bin/chromium',         # Snap packages
             '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',  # macOS
             '/usr/local/bin/google-chrome',
             '/usr/local/bin/chromium'
@@ -53,10 +54,10 @@ class WebDriverManager:
                 self.logger.info(f"Found Chrome binary: {path}")
                 return path
         
-        # Try which command (prioritize chromium for cloud)
+        # Try which command (prioritize new package names)
         try:
             import subprocess
-            for cmd in ['chromium-browser', 'chromium', 'google-chrome-stable', 'google-chrome']:
+            for cmd in ['chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable']:
                 result = subprocess.run(['which', cmd], capture_output=True, text=True, timeout=5)
                 if result.returncode == 0:
                     chrome_path = result.stdout.strip()

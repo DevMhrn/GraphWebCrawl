@@ -1,0 +1,14 @@
+# Minimal packages for Streamlit Cloud deployment
+# Use this if chromium/chromium-driver fails
+
+# Option 1: Try these first
+chromium
+chromium-driver
+
+# Option 2: If above fails, try these (uncomment)
+# google-chrome-stable
+# chromium-browser
+
+# Option 3: Minimal approach (uncomment if all above fail)
+# wget
+# unzip

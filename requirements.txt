@@ -13,5 +13,4 @@ validators
 tqdm
 numpy
 selenium
-webdriver-manager   
-google-chrome-stable
+webdriver-manager
