@@ -33,7 +33,7 @@ class SearchEngine:
         topic_urls = self._get_enhanced_topic_urls(query)
         all_urls.extend(topic_urls)
         
-        # If no URLs found, add some reliable fallback URLs
+        # If no URLs found, add fallback URLs
         if not all_urls:
             fallback_urls = self._get_fallback_urls(query)
             all_urls.extend(fallback_urls)
@@ -213,46 +213,38 @@ class SearchEngine:
     
     def _get_fallback_urls(self, query: str) -> List[str]:
         """Get reliable fallback URLs when search engines fail"""
-        # General knowledge and educational URLs that are likely to be accessible
+        # General reliable URLs that work in most deployment environments
         fallback_urls = [
+            "https://httpbin.org/html",
             "https://en.wikipedia.org/wiki/Main_Page",
-            "https://www.britannica.com",
-            "https://www.investopedia.com",
-            "https://www.howstuffworks.com",
-            "https://www.sciencedirect.com",
-            "https://www.nature.com",
-            "https://www.nationalgeographic.com",
-            "https://www.smithsonianmag.com"
+            "https://www.w3.org/",
+            "https://developer.mozilla.org/",
+            "https://github.com/",
+            "https://stackoverflow.com/"
         ]
         
         query_lower = query.lower()
         
-        # Technology-specific fallbacks
-        if any(word in query_lower for word in ['technology', 'software', 'programming', 'computer', 'web', 'internet']):
+        # Add query-specific reliable URLs
+        if any(word in query_lower for word in ['technology', 'programming', 'software', 'web']):
             fallback_urls.extend([
-                "https://www.techrepublic.com",
-                "https://www.computerworld.com",
-                "https://www.infoworld.com",
-                "https://www.cnet.com/tech/",
-                "https://www.pcmag.com"
+                "https://www.w3schools.com/",
+                "https://developer.mozilla.org/en-US/docs/Web",
+                "https://www.freecodecamp.org/"
             ])
         
-        # Science and research fallbacks
-        if any(word in query_lower for word in ['research', 'science', 'study', 'analysis']):
+        if any(word in query_lower for word in ['science', 'research', 'study']):
             fallback_urls.extend([
-                "https://www.sciencenews.org",
-                "https://www.livescience.com",
-                "https://www.popsci.com",
-                "https://www.newscientist.com"
+                "https://www.nature.com/",
+                "https://www.sciencedirect.com/",
+                "https://pubmed.ncbi.nlm.nih.gov/"
             ])
         
-        # Business and finance fallbacks
-        if any(word in query_lower for word in ['business', 'finance', 'market', 'economy']):
+        if any(word in query_lower for word in ['news', 'current', 'latest']):
             fallback_urls.extend([
-                "https://www.businessinsider.com",
-                "https://www.cnbc.com",
-                "https://www.bloomberg.com",
-                "https://www.reuters.com"
+                "https://www.bbc.com/",
+                "https://www.reuters.com/",
+                "https://www.cnn.com/"
             ])
         
         return fallback_urls[:6]  # Return up to 6 fallback URLs

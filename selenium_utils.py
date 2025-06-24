@@ -33,21 +33,66 @@ class WebDriverManager:
         self.driver: Optional[webdriver.Chrome] = None
         self.logger = logging.getLogger(__name__)
     
+    def _find_chrome_binary(self) -> Optional[str]:
+        """Find Chrome binary in deployment environments"""
+        # Common Chrome binary locations
+        chrome_paths = [
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser',
+            '/opt/google/chrome/chrome',
+            '/opt/google/chrome/google-chrome',
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            '/usr/local/bin/google-chrome',
+            '/usr/local/bin/chromium'
+        ]
+        
+        for path in chrome_paths:
+            if os.path.exists(path):
+                self.logger.info(f"Found Chrome binary: {path}")
+                return path
+        
+        # Try which command
+        try:
+            import subprocess
+            for cmd in ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser']:
+                result = subprocess.run(['which', cmd], capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    chrome_path = result.stdout.strip()
+                    self.logger.info(f"Found Chrome via which: {chrome_path}")
+                    return chrome_path
+        except Exception:
+            pass
+        
+        self.logger.warning("Chrome binary not found")
+        return None
+    
     def setup_driver(self) -> bool:
         """Setup Chrome WebDriver with optimized configurations"""
         try:
             chrome_options = Options()
             
+            # Find Chrome binary for deployment environments
+            chrome_binary = self._find_chrome_binary()
+            if chrome_binary:
+                chrome_options.binary_location = chrome_binary
+            
             # Basic options
             if self.headless:
                 chrome_options.add_argument("--headless")
             
-            # Performance and stability optimizations
+            # Essential deployment options
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--disable-gpu")
             chrome_options.add_argument("--disable-web-security")
             chrome_options.add_argument("--disable-features=VizDisplayCompositor")
+            chrome_options.add_argument("--remote-debugging-port=9222")
+            chrome_options.add_argument("--single-process")
+            chrome_options.add_argument("--disable-background-timer-throttling")
+            chrome_options.add_argument("--disable-backgrounding-occluded-windows")
+            chrome_options.add_argument("--disable-renderer-backgrounding")
             
             # Disable loading of images, CSS, and JavaScript for faster crawling
             prefs = {

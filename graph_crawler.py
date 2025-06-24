@@ -1,5 +1,5 @@
 from selenium_utils import WebDriverManager
-from selenium_deployment import DeploymentWebDriverManager
+from fallback_scraper import FallbackScraper
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from collections import deque, defaultdict
@@ -70,25 +70,24 @@ class GraphWebCrawler:
         self.graph_nodes: Dict[str, GraphNode] = {}
         self.url_to_node_id: Dict[str, str] = {}
         
-        # Selenium setup using deployment-friendly WebDriverManager
-        try:
-            self.driver_manager = DeploymentWebDriverManager(headless=headless, timeout=timeout)
-            self._setup_driver()
-        except Exception as e:
-            self.logger.warning(f"Deployment WebDriver failed, falling back to standard: {e}")
-            self.driver_manager = WebDriverManager(headless=headless, timeout=timeout)
-            self._setup_driver()
+        # Selenium setup using WebDriverManager
+        self.driver_manager = WebDriverManager(headless=headless, timeout=timeout)
+        self.fallback_scraper = FallbackScraper(timeout=timeout, delay=delay)
+        self.selenium_available = self._setup_driver()
     
-    def _setup_driver(self):
+    def _setup_driver(self) -> bool:
         """Initialize Selenium WebDriver using WebDriverManager"""
         try:
             success = self.driver_manager.setup_driver()
             if success:
                 self.logger.info("✅ Selenium WebDriver initialized successfully")
+                return True
             else:
-                self.logger.error("❌ Failed to initialize WebDriver")
+                self.logger.warning("⚠️  Selenium WebDriver failed, will use fallback scraper")
+                return False
         except Exception as e:
-            self.logger.error(f"❌ Failed to setup WebDriver: {e}")
+            self.logger.warning(f"⚠️  Failed to setup WebDriver, will use fallback scraper: {e}")
+            return False
     
     def __del__(self):
         """Clean up WebDriver when object is destroyed"""
@@ -124,12 +123,16 @@ class GraphWebCrawler:
         return node
     
     def _fetch_page_selenium(self, node: GraphNode) -> bool:
-        """Fetch and parse a single page using Selenium and update the node"""
-        if not self.driver_manager or not self.driver_manager.is_alive():
-            self.logger.error("WebDriver not available or not responsive")
-            node.crawl_status = "failed"
-            return False
-        
+        """Fetch and parse a single page using Selenium or fallback scraper"""
+        # Try Selenium first if available
+        if self.selenium_available and self.driver_manager and self.driver_manager.is_alive():
+            return self._fetch_with_selenium(node)
+        else:
+            # Use fallback scraper
+            return self._fetch_with_fallback(node)
+    
+    def _fetch_with_selenium(self, node: GraphNode) -> bool:
+        """Fetch page using Selenium"""
         try:
             url = node.url
             
@@ -177,26 +180,46 @@ class GraphWebCrawler:
                 'content_length': len(node.content),
                 'links_count': len(node.outbound_links),
                 'title_length': len(node.title),
-                'final_url': self.driver_manager.get_current_url()  # In case of redirects
+                'final_url': self.driver_manager.get_current_url(),  # In case of redirects
+                'method': 'selenium'
             }
             
             node.crawl_status = "crawled"
-            self.logger.info(f"✅ Successfully crawled: {url} ({len(node.content)} chars, {len(node.outbound_links)} links)")
-            
             return True
-        
+            
         except Exception as e:
-            self.logger.error(f"❌ Error fetching {url}: {e}")
+            self.logger.error(f"❌ Selenium fetch failed for {node.url}: {e}")
             node.crawl_status = "failed"
+            return False
+    
+    def _fetch_with_fallback(self, node: GraphNode) -> bool:
+        """Fetch page using fallback requests scraper"""
+        try:
+            result = self.fallback_scraper.get_page_content(node.url)
             
-            # Try to restart driver if it seems to be the issue
-            if "session" in str(e).lower() or "chrome" in str(e).lower():
-                self.logger.info("� Attempting to restart WebDriver...")
-                if self.driver_manager.restart_driver():
-                    self.logger.info("✅ WebDriver restarted successfully")
-                else:
-                    self.logger.error("❌ Failed to restart WebDriver")
+            if not result:
+                node.crawl_status = "failed"
+                return False
             
+            # Update node with scraped data
+            node.title = result['title']
+            node.content = result['content']
+            node.outbound_links = result['links']
+            
+            node.metadata = {
+                'content_length': len(node.content),
+                'links_count': len(node.outbound_links),
+                'title_length': len(node.title),
+                'final_url': result['url'],
+                'method': 'fallback_requests'
+            }
+            
+            node.crawl_status = "crawled"
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Fallback fetch failed for {node.url}: {e}")
+            node.crawl_status = "failed"
             return False
 
     def _extract_content(self, soup: BeautifulSoup) -> str:

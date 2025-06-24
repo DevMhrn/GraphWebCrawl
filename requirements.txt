@@ -14,3 +14,4 @@ tqdm
 numpy
 selenium
 webdriver-manager   
+google-chrome-stable
