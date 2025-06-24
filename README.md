@@ -1,4 +1,5 @@
-# 🔍 AI Research Crawler (Enhanced with Selenium & Graph Structure)
+# 🔍 AI Research Crawler (Enhanced with Selenium & Graph Structure) 
+### [Video](https://www.loom.com/share/4147a2fb832541db8b538f7567e02d9f?sid=328e05a7-420c-4b3c-abdc-c7806d2861cb)
 
 An intelligent web research chatbot that uses graph algorithms (BFS & DFS) to crawl and analyze web content with AI-powered summarization. **Now enhanced with Selenium for robust web scraping and proper graph data structures.**
 
