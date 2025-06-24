@@ -1,0 +1,8 @@
+# Primary option - Use this if chromium-browser doesn't work
+chromium-browser
+chromium-chromedriver
+
+# Alternative packages (uncomment if needed)
+# chromium
+# chromium-driver
+# google-chrome-stable

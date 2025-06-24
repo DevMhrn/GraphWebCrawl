@@ -35,15 +35,15 @@ class WebDriverManager:
     
     def _find_chrome_binary(self) -> Optional[str]:
         """Find Chrome binary in deployment environments"""
-        # Common Chrome binary locations
+        # Common Chrome binary locations (prioritize Chromium for cloud deployments)
         chrome_paths = [
-            '/usr/bin/google-chrome',
-            '/usr/bin/google-chrome-stable',
+            '/usr/bin/chromium-browser',  # Streamlit Cloud
             '/usr/bin/chromium',
-            '/usr/bin/chromium-browser',
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/google-chrome',
             '/opt/google/chrome/chrome',
             '/opt/google/chrome/google-chrome',
-            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',  # macOS
             '/usr/local/bin/google-chrome',
             '/usr/local/bin/chromium'
         ]
@@ -53,10 +53,10 @@ class WebDriverManager:
                 self.logger.info(f"Found Chrome binary: {path}")
                 return path
         
-        # Try which command
+        # Try which command (prioritize chromium for cloud)
         try:
             import subprocess
-            for cmd in ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser']:
+            for cmd in ['chromium-browser', 'chromium', 'google-chrome-stable', 'google-chrome']:
                 result = subprocess.run(['which', cmd], capture_output=True, text=True, timeout=5)
                 if result.returncode == 0:
                     chrome_path = result.stdout.strip()
@@ -82,7 +82,7 @@ class WebDriverManager:
             if self.headless:
                 chrome_options.add_argument("--headless")
             
-            # Essential deployment options
+            # Essential deployment options (optimized for Chromium)
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--disable-gpu")
@@ -93,6 +93,15 @@ class WebDriverManager:
             chrome_options.add_argument("--disable-background-timer-throttling")
             chrome_options.add_argument("--disable-backgrounding-occluded-windows")
             chrome_options.add_argument("--disable-renderer-backgrounding")
+            
+            # Additional Chromium compatibility options
+            chrome_options.add_argument("--disable-setuid-sandbox")
+            chrome_options.add_argument("--disable-software-rasterizer")
+            chrome_options.add_argument("--disable-background-networking")
+            chrome_options.add_argument("--disable-default-apps")
+            chrome_options.add_argument("--disable-sync")
+            chrome_options.add_argument("--no-first-run")
+            chrome_options.add_argument("--no-default-browser-check")
             
             # Disable loading of images, CSS, and JavaScript for faster crawling
             prefs = {
